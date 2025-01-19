@@ -22,7 +22,7 @@ st.set_page_config(
 )
 
 # Conexão com o MongoDB
-mongo_url = "mongodb+srv://renataturriararipe:HouseCar26@treino.rpvp5.mongodb.net/"
+mongo_url = os.getenv("MONGO_URL")
 client = MongoClient(mongo_url)
 db = client['dashboard_db']
 treinos_collection = db['treinos']
