@@ -9,7 +9,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
 st.markdown(
     """
     <style>
@@ -119,10 +118,10 @@ if st.session_state.jogo_iniciado and not st.session_state.jogo_terminado:
 
 # Exibição dos Resultados
 if st.session_state.pontuacoes is not None and not st.session_state.pontuacoes.empty:
-    st.header("💰 Resultados Acumulados 💰")
+    st.header("💰 Resultados 💰")
 
     # Exibir a tabela de pontuações por rodada
-    st.subheader("📊 Tabela de Pontuações por Rodada")
+    st.subheader("📊 Pontuações por Rodada")
     st.dataframe(st.session_state.pontuacoes)
 
     # Calcular as pontuações acumuladas
