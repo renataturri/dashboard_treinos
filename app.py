@@ -29,6 +29,7 @@ treinos_collection = db['treinos']
 medidas_collection = db['medidas']
 exercicios_collection = db['exercicios']
 registros_exercicios_collection = db['registros_exercicios']
+condicoes_treino_collection = db['condicoes_treino']
 
 # Funções para carregar dados
 def carregar_treinos():
@@ -97,7 +98,7 @@ with abas[0]:
         st.image(imagem_pil, caption="Imagem Carregada", use_column_width=True)
         dados_extraidos = processar_imagem(imagem_pil)
         st.success("Dados extraídos da imagem com sucesso!")
-        
+
     # Preencher os campos automaticamente, se os dados foram extraídos
     with st.form("form_treino"):
         data = st.date_input("Data do treino", value=datetime.now())
