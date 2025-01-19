@@ -28,7 +28,7 @@ st.markdown(
 )
 
 # Título do app
-st.title("🃏 Carioquinha 🃏")
+st.title("Carioquinha")
 
 # Inicializar estado da sessão
 if "jogadores" not in st.session_state:
@@ -80,7 +80,7 @@ if not st.session_state.jogo_iniciado:
 
 # Registro de Pontuações por Rodada (aparece após o jogo ser iniciado)
 if st.session_state.jogo_iniciado and not st.session_state.jogo_terminado:
-    st.header("🎯 Registro de Pontuações 🎯")
+    st.header("Registro de Pontuações")
 
     # Determinar o número de cartas para a rodada atual
     cartas_por_rodada = min(6 + st.session_state.rodada_atual - 1, 13)
