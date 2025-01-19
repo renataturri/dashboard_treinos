@@ -9,62 +9,23 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# HTML para estilizar fundo e elementos principais
-page_style = """
+
+st.markdown(
+    """
     <style>
-        body {
-            background-color: #1a1a1a; /* Fundo preto */
-            color: #ffd700; /* Texto dourado */
-            font-family: Arial, sans-serif;
+        h1 {
+            font-size: 20px; /* Título principal */
         }
-
-        .block-container {
-            padding: 2rem; /* Espaçamento ao redor do conteúdo principal */
+        h2 {
+            font-size: 16px; /* Subtítulos */
         }
-
-        h1, h2, h3 {
-            color: #ff4500; /* Vermelho brilhante */
-            font-family: "Comic Sans MS", cursive, sans-serif; /* Fonte divertida */
-        }
-
-        .stButton>button {
-            background-color: #d4af37; /* Dourado */
-            color: black;
-            border: 2px solid #ff0000; /* Borda vermelha */
-            font-size: 18px;
-            border-radius: 10px;
-            font-weight: bold;
-            padding: 10px 20px;
-        }
-        .stButton>button:hover {
-            background-color: #ff4500; /* Fundo vermelho ao passar o mouse */
-            color: white;
-        }
-
-        .stTextInput>div>input {
-            background-color: #333333; /* Fundo escuro */
-            color: white;
-            border: 2px solid #ffd700; /* Borda dourada */
-            border-radius: 5px;
-        }
-
-        .stNumberInput>div>input {
-            background-color: #333333; /* Fundo escuro */
-            color: white;
-            border: 2px solid #ffd700; /* Borda dourada */
-            border-radius: 5px;
-        }
-
-        .stDataFrame {
-            background-color: #000000; /* Fundo preto */
-            color: #ffd700; /* Texto dourado */
-            border: 2px solid #ff0000; /* Borda vermelha */
+        h3 {
+            font-size: 12px; /* Subsubtítulos */
         }
     </style>
-"""
-
-# Aplicar estilos no Streamlit
-st.markdown(page_style, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 # Título do app
 st.title("🃏 Placar do Jogo Carioquinha 🃏")
