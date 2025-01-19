@@ -14,13 +14,13 @@ st.markdown(
     """
     <style>
         h1 {
-            font-size: 20px; /* Título principal */
+            font-size: 16px; /* Título principal */
         }
         h2 {
-            font-size: 16px; /* Subtítulos */
+            font-size: 12px; /* Subtítulos */
         }
         h3 {
-            font-size: 12px; /* Subsubtítulos */
+            font-size: 10px; /* Subsubtítulos */
         }
     </style>
     """,
