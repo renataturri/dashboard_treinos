@@ -14,13 +14,13 @@ st.markdown(
     """
     <style>
         h1 {
-            font-size: 16px; /* Título principal */
+            font-size: 12px; /* Título principal */
         }
         h2 {
-            font-size: 12px; /* Subtítulos */
+            font-size: 10px; /* Subtítulos */
         }
         h3 {
-            font-size: 10px; /* Subsubtítulos */
+            font-size: 8px; /* Subsubtítulos */
         }
     </style>
     """,
@@ -28,7 +28,7 @@ st.markdown(
 )
 
 # Título do app
-st.title("🃏 Placar do Jogo Carioquinha 🃏")
+st.title("🃏 Carioquinha 🃏")
 
 # Inicializar estado da sessão
 if "jogadores" not in st.session_state:
@@ -44,7 +44,7 @@ if "jogo_iniciado" not in st.session_state:
 
 # Controle para Registro de Jogadores
 if not st.session_state.jogo_iniciado:
-    st.header("Registro de Jogadores")
+    st.header("Jogadores")
 
     # Entrada para o número de jogadores
     num_jogadores = st.number_input(
@@ -86,7 +86,7 @@ if st.session_state.jogo_iniciado and not st.session_state.jogo_terminado:
     cartas_por_rodada = min(6 + st.session_state.rodada_atual - 1, 13)
 
     # Exibir informações da rodada
-    st.subheader(f"♠️ Rodada {st.session_state.rodada_atual}: {cartas_por_rodada} cartas ♠️")
+    st.subheader(f"Rodada {st.session_state.rodada_atual}: {cartas_por_rodada} cartas")
 
     # Formulário para entrada de pontuações
     with st.form("registro_pontuacoes"):
