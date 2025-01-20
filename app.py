@@ -22,7 +22,8 @@ st.set_page_config(
 )
 
 # Conexão com o MongoDB
-mongo_url = os.getenv("MONGO_URL")
+##mongo_url = "mongodb+srv://renataturriararipe:HouseCar26@treino.rpvp5.mongodb.net/" 
+mongo_url = os.getenv("MONGO_URL") Para o Deploy
 client = MongoClient(mongo_url)
 db = client['dashboard_db']
 treinos_collection = db['treinos']
@@ -71,6 +72,11 @@ def processar_imagem(imagem):
             dados["tempo_total"] = int(tempo[0]) * 60 + int(tempo[1])
     return dados
 
+# Função para carregar as condições de treino
+def carregar_condicoes():
+    dados = list(condicoes_treino_collection.find({}))  # Certifique-se de que a coleção existe
+    return pd.DataFrame(dados)
+
 # Define DE:PARA para tipos de treino
 de_para = {
     "Posterior, Glúteos e Adutores": "Treino A - Posterior",
@@ -84,8 +90,8 @@ de_para = {
 # Dashboard Tabs
 abas = st.tabs([
     "Adicionar Treino", "Registrar Exercícios", "Adicionar Medidas", 
-    "Análise de Treinos", "Gráficos de Progresso", "Meta Anual e Assiduidade",
-    "Medidas Corporais"
+    "Análise de Treinos", "Meta Anual e Assiduidade",
+    "Medidas Corporais", "Indicadores de Treinos"
 ])
 
 # Aba 1: Adicionar Treino
@@ -241,9 +247,9 @@ with abas[2]:
 
             st.success("Dados salvos com sucesso!")
 
-# Aba 4: Exibição de dados
+# Aba 4: Análise e Progresso
 with abas[3]:
-    st.header("📊 Análise de Treinos")
+    st.header("📊 Análise e Progresso")
 
     # Carregar treinos
     df_treinos = carregar_treinos()
@@ -320,16 +326,11 @@ with abas[3]:
         with col3:
             st.metric("Total de Calorias Queimadas", df_filtrado["Calorias Queimadas"].sum())
             st.metric("Média de Calorias por Treino", df_filtrado["Calorias Queimadas"].mean().astype(int) if len(df_filtrado) > 0 else 0)
-    else:
-        st.warning("Nenhum treino encontrado. Adicione novos treinos na aba anterior.")
 
-# Aba 5: Gráficos
-with abas[4]:
-    st.header("📅 Gráficos de Progresso")
-    
-    if not df_treinos.empty:
+        # Gráficos de Progresso
+        st.subheader("📊 Gráficos de Progresso")
+
         # Calorias acumuladas por dia
-        df_treinos["Data"] = pd.to_datetime(df_treinos["Data"], format="%d/%m/%Y")
         calorias_acumuladas = df_treinos.groupby(df_treinos["Data"].dt.date)["Calorias Queimadas"].sum().reset_index()
         calorias_acumuladas.columns = ["Data", "Calorias Queimadas"]
         fig_calorias = px.bar(
@@ -358,35 +359,13 @@ with abas[4]:
         fig_tempo.update_traces(
             textposition="outside",  # Posição do texto acima da barra
             texttemplate="%{text}"  # Exibe o valor no formato padrão
-    )
+        )
         st.plotly_chart(fig_tempo, use_container_width=True)
     else:
-        st.warning("Nenhum dado disponível para gerar gráficos.")
+        st.warning("Nenhum dado encontrado para gerar análises ou gráficos.")
 
-
-# Função para carregar os dados
-    def carregar_treinos():
-        dados = list(treinos_collection.find({}, {"_id": 0}))
-        return pd.DataFrame(dados)
-
-# Carregar os dados
-    df_treinos = carregar_treinos()
-
-# Analisar os dados com Sweetviz
-   # if not df_treinos.empty:
-    #    relatorio = sv.analyze(df_treinos)
-    #    relatorio.show_html("relatorio_treinos.html", open_browser=False)
-
-    # Exibir no Streamlit
-     #   st.header("📊 Relatório Sweetviz")
-     #   HtmlFile = open("relatorio_treinos.html", 'r', encoding='utf-8')
-     #   source_code = HtmlFile.read() 
-     #   components.html(source_code, height=800, scrolling=True)
-    #else:
-     #   st.warning("Nenhum dado disponível para análise.")
-
-# Aba 6: Meta Anual e Indicador de Assiduidade
-with abas[5]:
+# Aba 5: Meta Anual e Indicador de Assiduidade
+with abas[4]:
     st.header("📊 Meta Anual e Indicador de Assiduidade")
 
     # Carregar dados do MongoDB
@@ -437,8 +416,8 @@ def carregar_medidas():
     dados = list(medidas_collection.find({}, {"_id": 0}))
     return pd.DataFrame(dados)
 
-# Aba 7: Medidas Corporais
-with abas[6]:  # Certifique-se de que esta seja a 5ª aba adicionada
+# Aba 6: Medidas Corporais
+with abas[5]:  # Certifique-se de que esta seja a 5ª aba adicionada
     st.header("📏 Medidas Corporais")
 
     # Carregar dados de medidas corporais
@@ -496,5 +475,193 @@ with abas[6]:  # Certifique-se de que esta seja a 5ª aba adicionada
             st.warning("Selecione ao menos uma medida para exibir no gráfico.")
     else:
         st.warning("Nenhuma medida corporal encontrada no banco de dados.")
+
+# Aba 7: Indicadores de Treinos
+with abas[6]:
+    st.header("📊 Indicadores de Treinos e Progresso")
+
+    # Cálculo da idade com base na data de nascimento
+    data_nascimento = datetime(1990, 7, 27)  # Insira sua data de nascimento
+    idade = (datetime.now() - data_nascimento).days // 365
+
+    # Indicadores - Divisão do layout em 2 colunas
+    col1, col2 = st.columns(2)
+
+    # Coluna 1: Gráficos de distribuição e intensidade
+    with col1:
+        st.subheader("📈 Treinos: Distribuição e Intensidade")
+        
+        # Distribuição de Tempo por Zona de Esforço
+        zonas = ["Leve", "Intensa", "Aeróbica", "Anaeróbica", "VO2 Máximo"]
+        tempos_zonas = [
+            df_treinos["Zona Leve (min)"].sum(),
+            df_treinos["Zona Intensa (min)"].sum(),
+            df_treinos["Zona Aeróbica (min)"].sum(),
+            df_treinos["Zona Anaeróbica (min)"].sum(),
+            df_treinos["Zona Max. VO2 (min)"].sum(),
+        ]
+        fig_zonas = px.pie(
+            names=zonas,
+            values=tempos_zonas,
+            title="Distribuição de Tempo por Zona de Esforço",
+        )
+        st.plotly_chart(fig_zonas, use_container_width=True)
+
+        # Intensidade Média
+        max_bpm = 220 - idade
+        intensidade_media = (
+            df_treinos["Batimento Médio (bpm)"].mean() / max_bpm * 100
+            if max_bpm > 0
+            else 0
+        )
+        st.metric("Intensidade Média (%)", f"{intensidade_media:.2f}%")
+
+    # Coluna 2: Eficiência calórica e variedade de treinos
+    with col2:
+        st.subheader("📊 Eficiência e Variedade")
+        
+        # Eficiência Calórica
+        total_calorias = df_treinos["Calorias Queimadas"].sum()
+        total_tempo = df_treinos["Tempo Total (min)"].sum()
+        eficiencia_calorica = total_calorias / total_tempo if total_tempo > 0 else 0
+        st.metric("Calorias por Minuto", f"{eficiencia_calorica:.2f} cal/min")
+
+        # Variedade de Treinos
+        frequencias_treino = df_treinos["Tipo de Treino"].value_counts()
+        fig_variedade = px.bar(
+            x=frequencias_treino.index,
+            y=frequencias_treino.values,
+            labels={"x": "Tipo de Treino", "y": "Frequência"},
+            title="Frequência por Tipo de Treino",
+        )
+        st.plotly_chart(fig_variedade, use_container_width=True)
+
+    # Indicadores de Progresso Físico
+    col3, col4 = st.columns(2)
+
+    with col3:
+        st.subheader("📏 Progresso Físico")
+
+        # Mudança em Medidas Corporais
+        df_medidas["Data"] = pd.to_datetime(df_medidas["Data"])
+        medidas_selecionadas = [
+            "Tórax (cm)", "Cintura (cm)", "Abdômen (cm)", "Quadril (cm)"
+        ]
+        if not df_medidas.empty:
+            fig_progresso_medidas = px.line(
+                df_medidas,
+                x="Data",
+                y=medidas_selecionadas,
+                title="Evolução das Medidas Corporais",
+                labels={"value": "Medidas (cm)", "variable": "Medidas"},
+            )
+            fig_progresso_medidas.update_traces(
+                mode="lines+markers+text",
+                textposition="top center",
+                texttemplate="%{y:.1f}",
+            )
+            st.plotly_chart(fig_progresso_medidas, use_container_width=True)
+
+        # Mudança no Peso Corporal
+        st.subheader("📉 Mudança no Peso Corporal")
+        peso_meta = 58  # Meta de peso
+        if "Peso (kg)" in df_medidas.columns:
+            fig_peso = px.line(
+                df_medidas,
+                x="Data",
+                y="Peso (kg)",
+                title="Progresso do Peso Corporal",
+                labels={"value": "Peso (kg)", "variable": "Peso"},
+            )
+            fig_peso.add_hline(
+                y=peso_meta,
+                line_dash="dot",
+                annotation_text=f"Meta: {peso_meta} kg",
+                annotation_position="bottom right",
+            )
+            st.plotly_chart(fig_peso, use_container_width=True)
+
+    with col4:
+        st.subheader("🏋️‍♂️ Indicadores de Exercícios")
+
+        # Progressão de carga
+        exercicios_principais = ["Supino com Halteres", "Agachamento Búlgaro", "Leg Press Bilateral"]
+        if not df_exercicios.empty:
+            progressao_carga = df_exercicios[df_exercicios["nome"].isin(exercicios_principais)]
+            if not progressao_carga.empty:
+                fig_carga = px.line(
+                    progressao_carga,
+                    x="id_treino",  # Identificador único para representar a ordem ou tempo
+                    y="carga",
+                    color="nome",
+                    title="Progressão de Carga nos Exercícios Principais",
+                    markers=True,
+                    labels={"id_treino": "Treino", "carga": "Carga (kg)", "nome": "Exercício"},
+                )
+                st.plotly_chart(fig_carga, use_container_width=True)
+            else:
+                st.warning("Nenhum dado encontrado para os exercícios principais.")
+        else:
+            st.warning("Nenhum dado de exercícios disponível.")
+
+        # Volume Total do Treino
+        if not df_exercicios.empty:
+            df_exercicios["volume_total"] = df_exercicios["carga"] * df_exercicios["repeticoes"] * df_exercicios["series"]
+            volume_por_musculo = df_exercicios.groupby("musculo")["volume_total"].sum().reset_index()
+            fig_volume = px.bar(
+                volume_por_musculo,
+                x="musculo",
+                y="volume_total",
+                title="Volume Total por Grupo Muscular",
+                text="volume_total"
+            )
+            fig_volume.update_traces(textposition="outside")
+            st.plotly_chart(fig_volume, use_container_width=True)
+        else:
+            st.warning("Nenhum dado de volume disponível.")
+
+    # Indicadores de Recuperação
+    col5, col6 = st.columns(2)
+
+    with col5:
+        st.subheader("💤 Indicadores de Recuperação")
+
+        df_condicoes = carregar_condicoes()
+        if not df_condicoes.empty:
+            numeric_columns = ["TSB", "Fadiga (ATL)", "Condição Física (CTL)"]
+            for col in numeric_columns:
+                df_condicoes[col] = pd.to_numeric(df_condicoes[col], errors="coerce")
+
+            df_long = df_condicoes.melt(
+                id_vars="Data", 
+                value_vars=numeric_columns, 
+                var_name="Indicador", 
+                value_name="Valor"
+            )
+            df_long["Data"] = pd.to_datetime(df_long["Data"], errors="coerce")
+            df_long = df_long.dropna(subset=["Valor", "Data"])
+
+            fig_fadiga = px.line(
+                df_long,
+                x="Data",
+                y="Valor",
+                color="Indicador",
+                title="Evolução dos Indicadores de Recuperação",
+                markers=True
+            )
+            st.plotly_chart(fig_fadiga, use_container_width=True)
+
+    with col6:
+        if "TSB" in df_condicoes.columns and "Fadiga (ATL)" in df_condicoes.columns:
+            df_condicoes["recuperacao"] = df_condicoes["TSB"] / df_condicoes["Fadiga (ATL)"]
+            fig_recuperacao = px.bar(
+                df_condicoes,
+                x="Data",
+                y="recuperacao",
+                title="Relação Treino/Recuperação",
+                text="recuperacao",
+            )
+            fig_recuperacao.update_traces(textposition="outside")
+            st.plotly_chart(fig_recuperacao, use_container_width=True)
 
 # Executar a aplicação
