@@ -25,8 +25,7 @@ st.set_page_config(
 st.title("Dashboard de Treinos")
 
 # Conexão com o MongoDB
-mongo_url = "mongodb+srv://renataturriararipe:HouseCar26@treino.rpvp5.mongodb.net/" 
-##mongo_url = os.getenv("MONGO_URL") #Para o Deploy
+mongo_url = os.getenv("MONGO_URL") #Para o Deploy
 client = MongoClient(mongo_url)
 db = client['dashboard_db']
 treinos_collection = db['treinos']
