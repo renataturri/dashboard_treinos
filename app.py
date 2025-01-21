@@ -21,8 +21,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Título do app
+st.title("Dashboard de Treinos")
+
 # Conexão com o MongoDB
-mongo_url = os.getenv("MONGO_URL") #Para o Deploy
+mongo_url = "mongodb+srv://renataturriararipe:HouseCar26@treino.rpvp5.mongodb.net/" 
+##mongo_url = os.getenv("MONGO_URL") #Para o Deploy
 client = MongoClient(mongo_url)
 db = client['dashboard_db']
 treinos_collection = db['treinos']
@@ -31,6 +35,7 @@ exercicios_collection = db['exercicios']
 registros_exercicios_collection = db['registros_exercicios']
 condicoes_treino_collection = db['condicoes_treino']
 
+# Funções para carregar dados
 # Funções para carregar dados
 def carregar_treinos():
     dados = list(treinos_collection.find({}, {"_id": 0}))
@@ -76,6 +81,19 @@ def carregar_condicoes():
     dados = list(condicoes_treino_collection.find({}))  # Certifique-se de que a coleção existe
     return pd.DataFrame(dados)
 
+# Função para carregar registros de exercícios
+def carregar_registros_exercicios():
+    """
+    Carrega os registros de exercícios da coleção 'registros_exercicios' no MongoDB.
+    """
+    dados = list(registros_exercicios_collection.find({}, {"_id": 0}))
+    return dados
+
+def carregar_medidas():
+    medidas_collection = db['medidas']  # Certifique-se de que a coleção 'medidas' existe no MongoDB
+    dados = list(medidas_collection.find({}, {"_id": 0}))
+    return pd.DataFrame(dados)
+
 # Define DE:PARA para tipos de treino
 de_para = {
     "Posterior, Glúteos e Adutores": "Treino A - Posterior",
@@ -100,7 +118,7 @@ with abas[0]:
     dados_extraidos = {}
     if imagem:
         imagem_pil = Image.open(imagem)
-        st.image(imagem_pil, caption="Imagem Carregada", use_column_width=True)
+        st.image(imagem_pil, caption="Imagem Carregada", use_container_width=True)
         dados_extraidos = processar_imagem(imagem_pil)
         st.success("Dados extraídos da imagem com sucesso!")
 
@@ -148,42 +166,58 @@ with abas[0]:
             st.success("Treino salvo com sucesso!")
 
 # Aba 2: Registrar Exercícios
+# Registrar Exercícios
 with abas[1]:
     st.header("🏋️‍♀️ Registrar Exercícios")
     st.subheader("Selecione o Treino e Registre os Detalhes")
+
+    # Carrega os exercícios do banco de dados
     df_exercicios = carregar_exercicios()
+
     if not df_exercicios.empty:
+        # Ajuste no dropdown para usar os valores corretos
         tipo_treino = st.selectbox(
             "Selecione o Tipo de Treino",
-            options=list(de_para.keys())
+            options=[
+                "Posterior e Glúteos",
+                "Quadriceps",
+                "Superiores empurrar",
+                "Superiores puxar",
+                "Core e HIIT"
+            ]
         )
-        treino_mapeado = de_para.get(tipo_treino, "Outro")
-        
-        # Ajuste aqui: substitua "Treino" pela coluna correta dos exercícios
-        if "Tipo de Treino" in df_exercicios.columns:
-            exercicios_filtrados = df_exercicios[df_exercicios["Tipo de Treino"] == treino_mapeado]
-        else:
-            exercicios_filtrados = pd.DataFrame()  # Caso a coluna não exista
-        
+
+        # Filtrar exercícios com base no dia_do_treino
+        exercicios_filtrados = df_exercicios[df_exercicios["dia_do_treino"] == tipo_treino]
+
         if not exercicios_filtrados.empty:
-            st.write(f"Exercícios para o {treino_mapeado}:")
+            st.write(f"Exercícios para o treino: {tipo_treino}")
             st.dataframe(exercicios_filtrados)
             with st.form("form_exercicios"):
+                # Entrada para selecionar a data do treino
+                data_treino = st.date_input("Data do Treino", value=datetime.now())
+                
                 registros = []
                 for _, row in exercicios_filtrados.iterrows():
-                    repeticoes = st.number_input(f"Repetições - {row['Exercício']}", min_value=0, step=1)
-                    peso = st.number_input(f"Peso (kg) - {row['Exercício']}", min_value=0.0, step=0.1)
-                    registros.append({"Exercício": row["Exercício"], "Repetições": repeticoes, "Peso (kg)": peso})
+                    repeticoes = st.number_input(f"Repetições - {row['nome']}", min_value=0, step=1)
+                    peso = st.number_input(f"Peso (kg) - {row['nome']}", min_value=0.0, step=0.1)
+                    registros.append({
+                        "Exercício": row["nome"], 
+                        "Repetições": repeticoes, 
+                        "Peso (kg)": peso,
+                        "Data": data_treino.strftime("%Y-%m-%d")  # Formatar a data como string
+                    })
+
                 submit_exercicio = st.form_submit_button("Salvar Exercícios")
                 if submit_exercicio:
                     registros_exercicios_collection.insert_one({
-                        "Treino": treino_mapeado,
-                        "Data": datetime.now().strftime("%Y-%m-%d"),
+                        "Treino": tipo_treino,
+                        "Data do Registro": data_treino.strftime("%Y-%m-%d"),
                         "Detalhes": registros
                     })
                     st.success("Exercícios registrados com sucesso!")
         else:
-            st.warning("Nenhum exercício encontrado para o treino selecionado.")
+            st.warning(f"Nenhum exercício encontrado para o treino selecionado: {tipo_treino}.")
     else:
         st.warning("Nenhum exercício disponível no banco de dados.")
 
@@ -199,8 +233,8 @@ with abas[2]:
         cintura = st.number_input("Cintura (cm)", min_value=0.0, step=0.1)
         abdomen = st.number_input("Abdômen (cm)", min_value=0.0, step=0.1)
         quadril = st.number_input("Quadril (cm)", min_value=0.0, step=0.1)
-        braco_direito = st.number_input("Braço Direito (cm)", min_value=0.0, step=0.1)  # Novo campo
-        braco_esquerdo = st.number_input("Braço Esquerdo (cm)", min_value=0.0, step=0.1)  # Novo campo
+        braco_direito = st.number_input("Braço Direito (cm)", min_value=0.0, step=0.1)
+        braco_esquerdo = st.number_input("Braço Esquerdo (cm)", min_value=0.0, step=0.1)
         coxa_direita = st.number_input("Coxa Direita (cm)", min_value=0.0, step=0.1)
         coxa_esquerda = st.number_input("Coxa Esquerda (cm)", min_value=0.0, step=0.1)
         panturrilha_direita = st.number_input("Panturrilha Direita (cm)", min_value=0.0, step=0.1)
@@ -217,20 +251,24 @@ with abas[2]:
         submit_button = st.form_submit_button(label="Salvar Dados")
 
         if submit_button:
+            # Função para substituir valores 0 por None
+            def substitui_zero_por_none(valor):
+                return None if valor == 0 else valor
+
             # Salvar medidas corporais
             nova_medida = {
                 "Data": data.strftime("%Y-%m-%d"),
-                "Peso (kg)": peso,
-                "Tórax (cm)": torax,
-                "Cintura (cm)": cintura,
-                "Abdômen (cm)": abdomen,
-                "Quadril (cm)": quadril,
-                "Braço Direito (cm)": braco_direito,
-                "Braço Esquerdo (cm)": braco_esquerdo,
-                "Coxa Direita (cm)": coxa_direita,
-                "Coxa Esquerda (cm)": coxa_esquerda,
-                "Panturrilha Direita (cm)": panturrilha_direita,
-                "Panturrilha Esquerda (cm)": panturrilha_esquerda,
+                "Peso (kg)": substitui_zero_por_none(peso),
+                "Tórax (cm)": substitui_zero_por_none(torax),
+                "Cintura (cm)": substitui_zero_por_none(cintura),
+                "Abdômen (cm)": substitui_zero_por_none(abdomen),
+                "Quadril (cm)": substitui_zero_por_none(quadril),
+                "Braço Direito (cm)": substitui_zero_por_none(braco_direito),
+                "Braço Esquerdo (cm)": substitui_zero_por_none(braco_esquerdo),
+                "Coxa Direita (cm)": substitui_zero_por_none(coxa_direita),
+                "Coxa Esquerda (cm)": substitui_zero_por_none(coxa_esquerda),
+                "Panturrilha Direita (cm)": substitui_zero_por_none(panturrilha_direita),
+                "Panturrilha Esquerda (cm)": substitui_zero_por_none(panturrilha_esquerda),
                 "Observações": observacoes
             }
             medidas_collection.insert_one(nova_medida)
@@ -239,8 +277,8 @@ with abas[2]:
             nova_condicao = {
                 "Data": data.strftime("%Y-%m-%d"),
                 "TSB": tsb,
-                "Fadiga (ATL)": fadiga,
-                "Condição Física (CTL)": condicao_fisica
+                "Fadiga (ATL)": substitui_zero_por_none(fadiga),
+                "Condição Física (CTL)": substitui_zero_por_none(condicao_fisica)
             }
             condicoes_treino_collection.insert_one(nova_condicao)
 
@@ -409,12 +447,6 @@ with abas[4]:
     else:
         st.warning("Nenhum dado disponível para a meta anual.")
 
-# Função para carregar medidas corporais
-def carregar_medidas():
-    medidas_collection = db['medidas']  # Certifique-se de que a coleção 'medidas' existe no MongoDB
-    dados = list(medidas_collection.find({}, {"_id": 0}))
-    return pd.DataFrame(dados)
-
 # Aba 6: Medidas Corporais
 with abas[5]:  # Certifique-se de que esta seja a 5ª aba adicionada
     st.header("📏 Medidas Corporais")
@@ -577,47 +609,139 @@ with abas[6]:
                 line_dash="dot",
                 annotation_text=f"Meta: {peso_meta} kg",
                 annotation_position="bottom right",
+                
+            )
+            fig_peso.update_traces(
+                mode="lines+markers+text",
+                textposition="top center",
+                texttemplate="%{y:.1f}",
             )
             st.plotly_chart(fig_peso, use_container_width=True)
 
     with col4:
-        st.subheader("🏋️‍♂️ Indicadores de Exercícios")
+        st.subheader("📈 Progressão de Carga")
 
-        # Progressão de carga
-        exercicios_principais = ["Supino com Halteres", "Agachamento Búlgaro", "Leg Press Bilateral"]
-        if not df_exercicios.empty:
-            progressao_carga = df_exercicios[df_exercicios["nome"].isin(exercicios_principais)]
-            if not progressao_carga.empty:
-                fig_carga = px.line(
-                    progressao_carga,
-                    x="id_treino",  # Identificador único para representar a ordem ou tempo
-                    y="carga",
-                    color="nome",
-                    title="Progressão de Carga nos Exercícios Principais",
-                    markers=True,
-                    labels={"id_treino": "Treino", "carga": "Carga (kg)", "nome": "Exercício"},
-                )
-                st.plotly_chart(fig_carga, use_container_width=True)
+        # Carregar registros de exercícios
+        registros_exercicios = carregar_registros_exercicios()
+
+        if registros_exercicios:  # Verifica se há registros disponíveis
+            # Converter a lista de registros para um DataFrame
+            df_registros_exercicios = pd.DataFrame(registros_exercicios)
+
+            # Verifica se o DataFrame possui a coluna "Detalhes" e processa os dados
+            if "Detalhes" in df_registros_exercicios.columns and not df_registros_exercicios.empty:
+                registros_detalhes = []
+                for _, registro in df_registros_exercicios.iterrows():
+                    if "Detalhes" in registro and isinstance(registro["Detalhes"], list):
+                        for detalhe in registro["Detalhes"]:
+                            detalhe["Data"] = registro["Data do Registro"]  # Adiciona a data do registro
+                            registros_detalhes.append(detalhe)
+
+                # Transformar os detalhes em DataFrame
+                df_detalhes = pd.DataFrame(registros_detalhes)
+
+                if not df_detalhes.empty:
+                    # Garantir que as colunas estão no formato correto
+                    if "Peso (kg)" in df_detalhes.columns:
+                        df_detalhes["Peso (kg)"] = pd.to_numeric(df_detalhes["Peso (kg)"], errors="coerce")
+
+                    if "Data" in df_detalhes.columns:
+                        df_detalhes["Data"] = pd.to_datetime(df_detalhes["Data"], format="%Y-%m-%d")
+                        df_detalhes["Data"] = df_detalhes["Data"].dt.strftime("%d/%m/%Y")
+
+                    # Selecionar exercícios para exibição no gráfico
+                    exercicios_disponiveis = df_detalhes["Exercício"].unique().tolist()
+                    exercicios_selecionados = st.multiselect(
+                        "Selecione os Exercícios para Visualizar:",
+                        options=exercicios_disponiveis,
+                        default=exercicios_disponiveis[:5],  # Seleciona os 5 primeiros por padrão
+                    )
+
+                    # Filtrar os dados para os exercícios selecionados
+                    df_filtrado = df_detalhes[df_detalhes["Exercício"].isin(exercicios_selecionados)]
+
+                    if not df_filtrado.empty:
+                        # Criar o gráfico de progressão de carga
+                        fig_carga = px.line(
+                            df_filtrado,
+                            x="Data",
+                            y="Peso (kg)",
+                            color="Exercício",
+                            title="Evolução de Carga nos Exercícios Selecionados",
+                            labels={"Data": "Data", "Peso (kg)": "Carga (kg)", "Exercício": "Exercício"},
+                            markers=True
+                        )
+                        st.plotly_chart(fig_carga, use_container_width=True)
+                    else:
+                        st.warning("Nenhum dado encontrado para os exercícios selecionados.")
+                else:
+                    st.warning("Nenhum detalhe de exercícios disponível.")
             else:
-                st.warning("Nenhum dado encontrado para os exercícios principais.")
+                st.warning("Nenhum dado válido encontrado nos registros de exercícios.")
         else:
-            st.warning("Nenhum dado de exercícios disponível.")
+            st.warning("Nenhum registro de exercícios encontrado.")
 
         # Volume Total do Treino
-        if not df_exercicios.empty:
-            df_exercicios["volume_total"] = df_exercicios["carga"] * df_exercicios["repeticoes"] * df_exercicios["series"]
-            volume_por_musculo = df_exercicios.groupby("musculo")["volume_total"].sum().reset_index()
-            fig_volume = px.bar(
-                volume_por_musculo,
-                x="musculo",
-                y="volume_total",
-                title="Volume Total por Grupo Muscular",
-                text="volume_total"
-            )
-            fig_volume.update_traces(textposition="outside")
-            st.plotly_chart(fig_volume, use_container_width=True)
+        st.subheader("📊 Volume Total por Grupo Muscular")
+
+        # Carregar registros de exercícios e exercícios do banco de dados
+        registros_exercicios = carregar_registros_exercicios()
+        df_exercicios = carregar_exercicios()
+
+        if registros_exercicios and not df_exercicios.empty:
+            # Converter registros para DataFrame
+            df_registros_exercicios = pd.DataFrame(registros_exercicios)
+
+            # Verifica se "Detalhes" e "Data do Registro" estão presentes
+            if "Detalhes" in df_registros_exercicios.columns and "Data do Registro" in df_registros_exercicios.columns:
+                registros_detalhes = []
+                for _, registro in df_registros_exercicios.iterrows():
+                    if isinstance(registro["Detalhes"], list):
+                        for detalhe in registro["Detalhes"]:
+                            detalhe["Data"] = registro["Data do Registro"]  # Adiciona a data do registro
+                            registros_detalhes.append(detalhe)
+
+                # Transformar os detalhes em DataFrame
+                df_detalhes = pd.DataFrame(registros_detalhes)
+
+                if not df_detalhes.empty:
+                    # Garantir os tipos corretos das colunas
+                    df_detalhes["Peso (kg)"] = pd.to_numeric(df_detalhes["Peso (kg)"], errors="coerce")
+                    df_detalhes["Repetições"] = pd.to_numeric(df_detalhes["Repetições"], errors="coerce")
+                    df_detalhes["Data"] = pd.to_datetime(df_detalhes["Data"], format="%Y-%m-%d")
+
+                    # Combinar os registros com o número de séries do banco de exercícios
+                    df_combinado = pd.merge(
+                        df_detalhes,
+                        df_exercicios[["nome", "series", "musculo"]],
+                        left_on="Exercício",
+                        right_on="nome",
+                        how="inner"
+                    )
+
+                    # Calcular o volume total: Peso (kg) * Repetições * Séries
+                    df_combinado["volume_total"] = df_combinado["Peso (kg)"] * df_combinado["Repetições"] * df_combinado["series"]
+
+                    # Agrupar por grupo muscular e somar o volume total
+                    volume_por_musculo = df_combinado.groupby("musculo")["volume_total"].sum().reset_index()
+
+                    # Criar gráfico de barras
+                    fig_volume = px.bar(
+                        volume_por_musculo,
+                        x="musculo",
+                        y="volume_total",
+                        title="Volume Total por Grupo Muscular",
+                        text="volume_total",
+                        labels={"musculo": "Grupo Muscular", "volume_total": "Volume Total (kg)"},
+                    )
+                    fig_volume.update_traces(textposition="outside")
+                    st.plotly_chart(fig_volume, use_container_width=True)
+                else:
+                    st.warning("Nenhum detalhe de exercícios disponível.")
+            else:
+                st.warning("Os registros de exercícios não possuem os campos esperados.")
         else:
-            st.warning("Nenhum dado de volume disponível.")
+            st.warning("Nenhum dado disponível para calcular o volume total.")
 
     # Indicadores de Recuperação
     col5, col6 = st.columns(2)
@@ -648,19 +772,74 @@ with abas[6]:
                 title="Evolução dos Indicadores de Recuperação",
                 markers=True
             )
+            fig_fadiga.update_traces(
+                mode="lines+markers+text",
+                textposition="top center",
+                texttemplate="%{y:.1f}",
+            )
             st.plotly_chart(fig_fadiga, use_container_width=True)
 
     with col6:
-        if "TSB" in df_condicoes.columns and "Fadiga (ATL)" in df_condicoes.columns:
-            df_condicoes["recuperacao"] = df_condicoes["TSB"] / df_condicoes["Fadiga (ATL)"]
+        # Relação Treino/Recuperação
+        df_treinos = carregar_treinos()
+
+        if not df_treinos.empty:
+            # Converte a coluna de data para datetime
+            df_treinos["Data"] = pd.to_datetime(df_treinos["Data"], format="%d/%m/%Y")
+
+            # Cálculo do número de dias corridos no ano até hoje
+            hoje = datetime.now()
+            inicio_ano = datetime(hoje.year, 1, 1)
+            dias_corridos = (hoje - inicio_ano).days + 1  # Inclui o dia atual
+
+            # Dias treinados com mais de 300 calorias queimadas
+            dias_treinados = df_treinos[df_treinos["Calorias Queimadas"] > 300]["Data"].nunique()
+
+            # Relação Treino/Recuperação
+            relacao_treino_recuperacao = dias_treinados / dias_corridos if dias_corridos > 0 else 0
+
+            # Criar DataFrame para o gráfico
+            df_recuperacao = pd.DataFrame({
+                "Indicador": ["Dias Corridos", "Dias Treinados"],
+                "Valor": [dias_corridos, dias_treinados]
+            })
+
+            # Criar figura com eixo duplo
             fig_recuperacao = px.bar(
-                df_condicoes,
-                x="Data",
-                y="recuperacao",
+                df_recuperacao,
+                x="Indicador",
+                y="Valor",
                 title="Relação Treino/Recuperação",
-                text="recuperacao",
+                text="Valor",
+                labels={"Indicador": "Indicador", "Valor": "Valor"},
             )
-            fig_recuperacao.update_traces(textposition="outside")
+
+            # Adicionar o eixo secundário para a relação treino/recuperação
+            fig_recuperacao.add_scatter(
+                x=["Relação Treino/Recuperação"],
+                y=[relacao_treino_recuperacao * 100],  # Converter para percentual
+                mode="markers+text",
+                text=[f"{relacao_treino_recuperacao:.0%}"],  # Exibir como percentual
+                textposition="top center",
+                name="Relação (%)",
+                yaxis="y2"
+            )
+
+            # Atualizar layout para incluir o eixo direito
+            fig_recuperacao.update_layout(
+                yaxis2=dict(
+                    title="Relação Treino/Recuperação (%)",
+                    overlaying="y",
+                    side="right",
+                    showgrid=False,
+                ),
+                yaxis=dict(title="Dias"),
+            )
+
             st.plotly_chart(fig_recuperacao, use_container_width=True)
+
+        else:
+            st.warning("Nenhum dado de treino encontrado no banco de dados.")
+
 
 # Executar a aplicação
