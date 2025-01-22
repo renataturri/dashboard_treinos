@@ -244,7 +244,7 @@ with abas[2]:
 
         # Condições do Treino
         st.subheader("💪 Condições do Treino")
-        tsb = st.text_input("TSB (Forma de Treinamento)", value="Energético (5.0)")
+        tsb = st.number_input("TSB (Forma de Treinamento)", min_value=0.0, step=0.1)
         fadiga = st.number_input("Fadiga (ATL)", min_value=0.0, step=0.1)
         condicao_fisica = st.number_input("Condição Física (CTL)", min_value=0.0, step=0.1)
 
@@ -277,7 +277,7 @@ with abas[2]:
             # Salvar condições do treino
             nova_condicao = {
                 "Data": data.strftime("%Y-%m-%d"),
-                "TSB": tsb,
+                "TSB": substitui_zero_por_none(tsb),
                 "Fadiga (ATL)": substitui_zero_por_none(fadiga),
                 "Condição Física (CTL)": substitui_zero_por_none(condicao_fisica)
             }
