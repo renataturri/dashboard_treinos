@@ -9,7 +9,6 @@ import holidays
 import os
 import sweetviz as sv
 import streamlit.components.v1 as components
-import huggingface_hub
 import requests
 
 
