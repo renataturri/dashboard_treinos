@@ -9,6 +9,9 @@ import holidays
 import os
 import sweetviz as sv
 import streamlit.components.v1 as components
+import huggingface_hub
+import requests
+
 
 # Configuração do pytesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
@@ -519,23 +522,24 @@ with abas[6]:
 
     # Coluna 1: Gráficos de distribuição e intensidade
     with col1:
-        st.subheader("📈 Treinos: Distribuição e Intensidade")
-        
-        # Distribuição de Tempo por Zona de Esforço
-        zonas = ["Leve", "Intensa", "Aeróbica", "Anaeróbica", "VO2 Máximo"]
-        tempos_zonas = [
-            df_treinos["Zona Leve (min)"].sum(),
-            df_treinos["Zona Intensa (min)"].sum(),
-            df_treinos["Zona Aeróbica (min)"].sum(),
-            df_treinos["Zona Anaeróbica (min)"].sum(),
-            df_treinos["Zona Max. VO2 (min)"].sum(),
-        ]
-        fig_zonas = px.pie(
-            names=zonas,
-            values=tempos_zonas,
-            title="Distribuição de Tempo por Zona de Esforço",
-        )
-        st.plotly_chart(fig_zonas, use_container_width=True)
+        if not df_treinos.empty:
+            st.subheader("📈 Treinos: Distribuição e Intensidade")
+            
+            # Distribuição de Tempo por Zona de Esforço
+            zonas = ["Leve", "Intensa", "Aeróbica", "Anaeróbica", "VO2 Máximo"]
+            tempos_zonas = [
+                df_treinos["Zona Leve (min)"].sum(),
+                df_treinos["Zona Intensa (min)"].sum(),
+                df_treinos["Zona Aeróbica (min)"].sum(),
+                df_treinos["Zona Anaeróbica (min)"].sum(),
+                df_treinos["Zona Max. VO2 (min)"].sum(),
+            ]
+            fig_zonas = px.pie(
+                names=zonas,
+                values=tempos_zonas,
+                title="Distribuição de Tempo por Zona de Esforço",
+            )
+            st.plotly_chart(fig_zonas, use_container_width=True)
 
         # Intensidade Média
         max_bpm = 220 - idade
@@ -589,6 +593,7 @@ with abas[6]:
                 mode="lines+markers+text",
                 textposition="top center",
                 texttemplate="%{y:.1f}",
+                connectgaps=True,
             )
             st.plotly_chart(fig_progresso_medidas, use_container_width=True)
 
@@ -614,6 +619,7 @@ with abas[6]:
                 mode="lines+markers+text",
                 textposition="top center",
                 texttemplate="%{y:.1f}",
+                connectgaps=True
             )
             st.plotly_chart(fig_peso, use_container_width=True)
 
@@ -670,6 +676,7 @@ with abas[6]:
                             labels={"Data": "Data", "Peso (kg)": "Carga (kg)", "Exercício": "Exercício"},
                             markers=True
                         )
+                        fig_carga.update_traces(connectgaps=True)
                         st.plotly_chart(fig_carga, use_container_width=True)
                     else:
                         st.warning("Nenhum dado encontrado para os exercícios selecionados.")
@@ -775,6 +782,7 @@ with abas[6]:
                 mode="lines+markers+text",
                 textposition="top center",
                 texttemplate="%{y:.1f}",
+                connectgaps=True
             )
             st.plotly_chart(fig_fadiga, use_container_width=True)
 
