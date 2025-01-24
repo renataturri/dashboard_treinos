@@ -147,6 +147,48 @@ with abas[0]:
         submit_button = st.form_submit_button(label="Salvar Treino")
 
         if submit_button:
+            # Verificar se todos os campos estão preenchidos
+            campos_obrigatorios = {
+                "Data": data,
+                "Tipo de Treino": tipo_treino,
+                "Duração do Treino": duracao,
+                "Calorias Queimadas": calorias,
+                "Batimento Médio": bpm_medio,
+                "Batimento Máximo": bpm_max,
+                "Zona Leve": zona_leve,
+                "Zona Intensa": zona_intensa,
+                "Zona Aeróbica": zona_aerobica,
+                "Zona Anaeróbica": zona_anaerobica,
+                "Zona Max VO2": zona_maxvo,
+                "Mobilidade": mobilidade,
+                "Aeróbico": aerobico
+            }
+
+            campos_vazios = [campo for campo, valor in campos_obrigatorios.items() if valor in [0, None, ""]]
+
+            if campos_vazios:
+                st.error(f"Os seguintes campos estão incompletos: {', '.join(campos_vazios)}")
+            else:
+                novo_treino = {
+                    "Data": data.strftime("%d/%m/%Y"),
+                    "Tipo de Treino": tipo_treino,
+                    "Tempo Total (min)": duracao,
+                    "Calorias Queimadas": calorias,
+                    "Batimento Médio (bpm)": bpm_medio,
+                    "Batimento Máximo (bpm)": bpm_max,
+                    "Zona Leve (min)": zona_leve,
+                    "Zona Intensa (min)": zona_intensa,
+                    "Zona Aeróbica (min)": zona_aerobica,
+                    "Zona Anaeróbica (min)": zona_anaerobica,
+                    "Zona Max. VO2 (min)": zona_maxvo,
+                    "Mobilidade (min)": mobilidade,
+                    "Aeróbico (min)": aerobico,
+                    "Comentários": comentarios
+                }
+                treinos_collection.insert_one(novo_treino)
+                st.success("Treino salvo com sucesso!")
+
+        if submit_button:
             novo_treino = {
                 "Data": data.strftime("%d/%m/%Y"),
                 "Tipo de Treino": tipo_treino,
